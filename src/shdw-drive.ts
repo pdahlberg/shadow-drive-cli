@@ -677,20 +677,10 @@ programCommand("get-storage-account")
                 return;
             }
             storageAccount = formattedAccounts[pickedAccount.option].pubkey;
-            //storageAccountData = formattedAccounts[pickedAccount.option];
-        } else {
-            storageAccount = formattedAccounts[options.storageAccount].pubkey;
-            /*storageAccountData = formattedAccounts.find((account: any) => {
-                const accountPubkey = new PublicKey(account.pubkey);
-                if (
-                    account &&
-                    accountPubkey &&
-                    accountPubkey instanceof PublicKey
-                ) {
-                    return accountPubkey.equals(new PublicKey(storageAccount));
-                }
-                return false;
-            });*/
+        } else {            
+            storageAccount = formattedAccounts.find((account: any) => {
+                return account.pubkey.toString() === options.storageAccount;
+            });
         }
 
         log.info(
