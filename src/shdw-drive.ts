@@ -679,7 +679,7 @@ programCommand("get-storage-account")
             storageAccount = formattedAccounts[pickedAccount.option].pubkey;
             //storageAccountData = formattedAccounts[pickedAccount.option];
         } else {
-            storageAccount = options.storageAccount;
+            storageAccount = formattedAccounts[options.storageAccount].pubkey;
             /*storageAccountData = formattedAccounts.find((account: any) => {
                 const accountPubkey = new PublicKey(account.pubkey);
                 if (
