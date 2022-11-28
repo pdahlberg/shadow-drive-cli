@@ -622,6 +622,10 @@ programCommand("get-storage-account")
         "-kp, --keypair <string>",
         "Path to the keypair file for the wallet that you want to find storage accounts for."
     )
+    .option(
+        "-s, --storage-account <string>",
+        "Storage account to upload file to."
+    )
     .action(async (options, cmd) => {
         const keypair = loadWalletKey(path.resolve(options.keypair));
         const wallet = new anchor.Wallet(keypair);
@@ -652,25 +656,43 @@ programCommand("get-storage-account")
             sortByProperty("accountCounterSeed")
         );
 
-        const pickedAccount = await prompts({
-            type: "select",
-            name: "option",
-            message: "Which storage account do you want to get?",
-            choices: formattedAccounts.map((acc: any) => {
-                return {
-                    title: `${acc.identifier} - ${acc.pubkey.toString()} - ${
-                        acc.storageAvailable
-                    } remaining`,
-                };
-            }),
-        });
+        let storageAccount: any;
 
-        if (typeof pickedAccount.option === "undefined") {
-            log.error("You must pick a storage account to get.");
-            return;
+        if(!options.storageAccount) {
+            const pickedAccount = await prompts({
+                type: "select",
+                name: "option",
+                message: "Which storage account do you want to get?",
+                choices: formattedAccounts.map((acc: any) => {
+                    return {
+                        title: `${acc.identifier} - ${acc.pubkey.toString()} - ${
+                            acc.storageAvailable
+                        } remaining`,
+                    };
+                }),
+            });
+
+            if (typeof pickedAccount.option === "undefined") {
+                log.error("You must pick a storage account to get.");
+                return;
+            }
+            storageAccount = formattedAccounts[pickedAccount.option].pubkey;
+            //storageAccountData = formattedAccounts[pickedAccount.option];
+        } else {
+            storageAccount = options.storageAccount;
+            /*storageAccountData = formattedAccounts.find((account: any) => {
+                const accountPubkey = new PublicKey(account.pubkey);
+                if (
+                    account &&
+                    accountPubkey &&
+                    accountPubkey instanceof PublicKey
+                ) {
+                    return accountPubkey.equals(new PublicKey(storageAccount));
+                }
+                return false;
+            });*/
         }
 
-        const storageAccount = formattedAccounts[pickedAccount.option];
         log.info(
             `Information for storage account ${
                 storageAccount.identifier
