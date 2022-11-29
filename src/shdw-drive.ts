@@ -624,7 +624,7 @@ programCommand("get-storage-account")
     )
     .option(
         "-s, --storage-account <string>",
-        "Storage account to upload file to."
+        "Fetch info for storage account."
     )
     .action(async (options, cmd) => {
         const keypair = loadWalletKey(path.resolve(options.keypair));
