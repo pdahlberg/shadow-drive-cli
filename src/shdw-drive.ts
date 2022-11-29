@@ -28,14 +28,11 @@ import mime from "mime-types";
 
 program.version("0.3.5");
 program.description(
+    "This is beta software running on Solana's Mainnet. Use at your own discretion.\n\n" +
     "CLI for interacting with Shade Drive. This tool uses Solana's Mainnet-Beta network with an internal RPC configuration. It does not use your local Solana configurations."
 );
 
 log.setLevel(log.levels.INFO);
-
-log.info(
-    "This is beta software running on Solana's Mainnet. Use at your own discretion."
-);
 
 programCommand("create-storage-account")
     .requiredOption(
@@ -683,12 +680,10 @@ programCommand("get-storage-account")
             });
         }
 
-        log.info(
-            `Information for storage account ${
-                storageAccount.identifier
-            } - ${storageAccount.pubkey?.toString()}:`
-        );
-        return log.info(storageAccount);
+        let msg = `Information for storage account ${storageAccount.identifier} - ${storageAccount.pubkey?.toString()}:`;
+        log.info(infoText(msg, options.quiet));
+
+        return log.info(JSON.stringify(storageAccount));
     });
 
 programCommand("delete-storage-account")
@@ -1520,7 +1515,8 @@ function programCommand(name: string) {
             "Solana Mainnet RPC Endpoint",
             "https://api.mainnet-beta.solana.com"
         )
-        .option("-l, --log-level <string>", "log level", setLogLevel);
+        .option("-l, --log-level <string>", "log level", setLogLevel)
+        .option("-q, --quiet", "Only print command result");
 
     return shdwProgram;
 }
@@ -1531,6 +1527,10 @@ function setLogLevel(value: any, prev: any) {
     }
     log.info("setting the log value to: " + value);
     log.setLevel(value);
+}
+
+function infoText(text: String, isQuiet: boolean) {
+    return isQuiet ? "" : text;
 }
 
 program.parse(process.argv);
