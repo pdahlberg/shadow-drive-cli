@@ -621,7 +621,7 @@ programCommand("get-storage-account")
     )
     .option(
         "-s, --storage-account <string>",
-        "Fetch info for storage account."
+        "Public key of storage account."
     )
     .action(async (options, cmd) => {
         const keypair = loadWalletKey(path.resolve(options.keypair));
@@ -885,6 +885,10 @@ programCommand("add-storage")
         "-s, --size <string>",
         "Amount of storage you are requesting to add to your storage account. Should be in a string like '1KB', '1MB', '1GB'. Only KB, MB, and GB storage delineations are supported currently."
     )
+    .option(
+        "-s, --storage-account <string>",
+        "Public key of storage account."
+    )
     .action(async (options, cmd) => {
         const keypair = loadWalletKey(options.keypair);
         const wallet = new anchor.Wallet(keypair);
@@ -925,39 +929,55 @@ programCommand("add-storage")
             sortByProperty("accountCounterSeed")
         );
 
-        const pickedAccount = await prompts({
-            type: "select",
-            name: "option",
-            message: "Which storage account do you want to add storage to?",
-            choices: formattedAccounts.map((acc: any) => {
-                return {
-                    title: `${acc.identifier} - ${acc.pubkey.toString()} - ${
-                        acc.totalStorage
-                    } reserved - ${acc.storageAvailable} remaining - ${
-                        acc.immutable ? "Immutable" : "Mutable"
-                    }`,
-                };
-            }),
-        });
+        let storageAccount: any;
 
-        if (typeof pickedAccount.option === "undefined") {
+        log.info(`options.storageAccount: ${options.storageAccount}`);
+
+        if(!options.storageAccount) {            
+            const pickedAccount = await prompts({
+                type: "select",
+                name: "option",
+                message: "Which storage account do you want to add storage to?",
+                choices: formattedAccounts.map((acc: any) => {
+                    return {
+                        title: `${acc.identifier} - ${acc.pubkey.toString()} - ${
+                            acc.totalStorage
+                        } reserved - ${acc.storageAvailable} remaining - ${
+                            acc.immutable ? "Immutable" : "Mutable"
+                        }`,
+                    };
+                }),
+            });
+
+            if (typeof pickedAccount.option === "undefined") {
+                log.error("You must pick a storage account.");
+                return;
+            }
+            storageAccount = formattedAccounts[pickedAccount.option];
+        } else {            
+            storageAccount = formattedAccounts.find((account: any) => {
+                return account.pubkey.toString() === options.storageAccount;
+            });
+        }
+        
+        let pubkey = storageAccount.pubkey;
+
+        if (typeof pubkey === "undefined") {
             log.error("You must pick a storage account to add storage to.");
             return;
         }
 
-        // Get current storage and user funds
-        const storageAccount = formattedAccounts[pickedAccount.option].pubkey;
         let accountType = await validateStorageAccount(
-            new PublicKey(storageAccount),
+            new PublicKey(pubkey),
             connection
         );
         if (!accountType || accountType === null) {
             return log.error(
-                `Storage account ${storageAccount} is not a valid Shadow Drive Storage Account.`
+                `Storage account ${pubkey} is not a valid Shadow Drive Storage Account.`
             );
         }
         const [stakeAccount] = await anchor.web3.PublicKey.findProgramAddress(
-            [Buffer.from("stake-account"), storageAccount.toBytes()],
+            [Buffer.from("stake-account"), pubkey.toBytes()],
             programClient.programId
         );
         const ownerAta = await findAssociatedTokenAddress(
@@ -966,7 +986,7 @@ programCommand("add-storage")
         );
 
         log.debug({
-            storageAccount: storageAccount.toString(),
+            storageAccount: pubkey.toString(),
             stakeAccount: stakeAccount.toString(),
             ownerAta: ownerAta.toString(),
         });
@@ -978,7 +998,7 @@ programCommand("add-storage")
             // Mutable V1 add storage
             if (accountType === "V1") {
                 const addStorage = await drive.addStorage(
-                    storageAccount,
+                    pubkey,
                     storageInput,
                     "v1"
                 );
@@ -987,7 +1007,7 @@ programCommand("add-storage")
             // Mutable V2 Add Storage
             if (accountType === "V2") {
                 const addStorage = await drive.addStorage(
-                    storageAccount,
+                    pubkey,
                     storageInput,
                     "v2"
                 );
